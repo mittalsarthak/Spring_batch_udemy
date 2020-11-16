@@ -90,6 +90,8 @@ public class BatchConfiguration {
                         setLineTokenizer(new DelimitedLineTokenizer(){
                             {
                                 setNames(new String[] {"productId","productName","productDesc","price","unit"});
+//                                to set the delimiter
+                                setDelimiter("|");
                             }
                         });
                         setFieldSetMapper(new BeanWrapperFieldSetMapper<Product>(){
