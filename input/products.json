@@ -1,0 +1,16 @@
+[
+  {
+    "productId": 1,
+    "productName": "Apple",
+    "productDesc": "Apple cell phone",
+    "price": 1232.00,
+    "unit": 23
+  },
+  {
+    "productId": 2,
+    "productName": "Dell",
+    "productDesc": "Dell Laptop",
+    "price": 23400.00,
+    "unit": 177
+  }
+]

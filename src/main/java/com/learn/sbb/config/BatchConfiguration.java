@@ -25,6 +25,8 @@ import org.springframework.batch.item.file.mapping.FieldSetMapper;
 import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
 import org.springframework.batch.item.file.transform.FixedLengthTokenizer;
 import org.springframework.batch.item.file.transform.Range;
+import org.springframework.batch.item.json.JacksonJsonObjectReader;
+import org.springframework.batch.item.json.JsonItemReader;
 import org.springframework.batch.item.xml.StaxEventItemReader;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -194,6 +196,16 @@ public class BatchConfiguration {
         return reader;
     }
 
+    @StepScope
+    @Bean
+    public JsonItemReader jsonItemReader(
+            @Value("#{JobParameters['inputFile']}")
+            FileSystemResource inputFile
+    ){
+        JsonItemReader reader = new JsonItemReader(inputFile,new JacksonJsonObjectReader(Product.class));
+        return reader;
+    }
+
     @Bean
     public Step step1() {
         return steps.get("step1")
@@ -220,7 +232,8 @@ public class BatchConfiguration {
 //                .reader(flatFileItemReader(null))
 //                .reader(xmlitemReader(null))
 //                .reader(fixFlatFileItemReader(null))
-                .reader(jdbcCursorItemReader())
+//                .reader(jdbcCursorItemReader())
+                .reader(jsonItemReader(null))
                 .writer(consoleItemWriter)
                 .build();
     }
