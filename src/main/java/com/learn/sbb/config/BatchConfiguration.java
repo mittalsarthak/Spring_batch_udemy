@@ -17,11 +17,14 @@ import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.tasklet.Tasklet;
+import org.springframework.batch.item.database.JdbcCursorItemReader;
 import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper;
 import org.springframework.batch.item.file.mapping.DefaultLineMapper;
 import org.springframework.batch.item.file.mapping.FieldSetMapper;
 import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
+import org.springframework.batch.item.file.transform.FixedLengthTokenizer;
+import org.springframework.batch.item.file.transform.Range;
 import org.springframework.batch.item.xml.StaxEventItemReader;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,8 +34,10 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.PathResource;
 import org.springframework.core.io.UrlResource;
+import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.oxm.jaxb.Jaxb2Marshaller;
 
+import javax.sql.DataSource;
 import java.io.File;
 import java.net.MalformedURLException;
 
@@ -62,6 +67,9 @@ public class BatchConfiguration {
 
     @Autowired
     private Step2Listener step2Listener;
+
+    @Autowired
+    private DataSource dataSource;
 
     private Tasklet helloWorldTasklet() {
         return new Tasklet() {
@@ -112,6 +120,45 @@ public class BatchConfiguration {
         return reader;
     }
 
+    @StepScope
+    @Bean
+    //Reader for fixed length file
+    public FlatFileItemReader fixFlatFileItemReader(
+            @Value("#{jobParameters['inputFile']}")
+            FileSystemResource inputFile
+    ){
+
+        FlatFileItemReader reader = new FlatFileItemReader();
+        reader.setResource(inputFile);
+
+        reader.setLineMapper(
+                new DefaultLineMapper(){
+                    {
+                        setLineTokenizer(new FixedLengthTokenizer(){
+                            {
+                                setNames("productId","productName","productDesc","price","unit");
+                                setColumns(
+                                        new Range(1,16),
+                                        new Range(17,41),
+                                        new Range(42,65),
+                                        new Range(66,73),
+                                        new Range(74,80)
+                                );
+                            }
+                        });
+                        setFieldSetMapper(new BeanWrapperFieldSetMapper<Product>(){
+                            {
+                                setTargetType(Product.class);
+                            }
+                        });
+                    }
+                }
+        );
+
+        reader.setLinesToSkip(1);
+        return reader;
+    }
+
     //Reader for xml file
     @StepScope
     @Bean
@@ -129,6 +176,19 @@ public class BatchConfiguration {
         reader.setUnmarshaller(new Jaxb2Marshaller(){
             {
                 setClassesToBeBound(Product.class);
+            }
+        });
+        return reader;
+    }
+
+    @Bean
+    public JdbcCursorItemReader jdbcCursorItemReader(){
+        JdbcCursorItemReader reader = new JdbcCursorItemReader();
+        reader.setDataSource(this.dataSource);
+        reader.setSql("SELECT * FROM products;");
+        reader.setRowMapper(new BeanPropertyRowMapper(){
+            {
+                setMappedClass(Product.class);
             }
         });
         return reader;
@@ -158,7 +218,9 @@ public class BatchConfiguration {
         return steps.get("step3")
                 .<String, String>chunk(1)
 //                .reader(flatFileItemReader(null))
-                .reader(xmlitemReader(null))
+//                .reader(xmlitemReader(null))
+//                .reader(fixFlatFileItemReader(null))
+                .reader(jdbcCursorItemReader())
                 .writer(consoleItemWriter)
                 .build();
     }
