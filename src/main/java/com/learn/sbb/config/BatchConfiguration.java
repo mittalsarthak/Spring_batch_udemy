@@ -13,6 +13,7 @@ import org.springframework.batch.core.StepContribution;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
+import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.tasklet.Tasklet;
@@ -23,6 +24,7 @@ import org.springframework.batch.item.file.mapping.FieldSetMapper;
 import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.FileSystemResource;
@@ -67,13 +69,19 @@ public class BatchConfiguration {
             }
         };
     }
-
+    @StepScope
     @Bean
-    public FlatFileItemReader flatFileItemReader() {
+    public FlatFileItemReader flatFileItemReader(
+            @Value("#{jobParameters['inputFile']}")
+            FileSystemResource inputFile) {
         FlatFileItemReader reader = new FlatFileItemReader();
 
         //Step 1: Let the reader know where is the file
-        reader.setResource(new FileSystemResource("input/products.csv"));
+        //Hard coding the input file. If using this then we don't need @value in method declaration
+        //reader.setResource(new FileSystemResource("input/products.csv"));
+
+        //Late Binding of parameter
+        reader.setResource(inputFile);
 
         //Step 2: create the line mapper
         reader.setLineMapper(
@@ -120,7 +128,7 @@ public class BatchConfiguration {
     public Step step3() {
         return steps.get("step3")
                 .<String, String>chunk(1)
-                .reader(flatFileItemReader())
+                .reader(flatFileItemReader(null))
                 .writer(consoleItemWriter)
                 .build();
     }
