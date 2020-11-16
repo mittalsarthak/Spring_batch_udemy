@@ -22,6 +22,7 @@ import org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper;
 import org.springframework.batch.item.file.mapping.DefaultLineMapper;
 import org.springframework.batch.item.file.mapping.FieldSetMapper;
 import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
+import org.springframework.batch.item.xml.StaxEventItemReader;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,7 +31,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.PathResource;
 import org.springframework.core.io.UrlResource;
+import org.springframework.oxm.jaxb.Jaxb2Marshaller;
 
+import java.io.File;
 import java.net.MalformedURLException;
 
 @EnableBatchProcessing
@@ -69,6 +72,8 @@ public class BatchConfiguration {
             }
         };
     }
+
+    // Reader for csv file
     @StepScope
     @Bean
     public FlatFileItemReader flatFileItemReader(
@@ -107,6 +112,28 @@ public class BatchConfiguration {
         return reader;
     }
 
+    //Reader for xml file
+    @StepScope
+    @Bean
+    public StaxEventItemReader xmlitemReader(
+            @Value("#{jobParameters['inputFile']}")
+            FileSystemResource inputFile){
+        StaxEventItemReader reader = new StaxEventItemReader();
+        //where to read the xml file
+        reader.setResource(inputFile);
+
+        //need to let reader know which tags describe the domain object
+        reader.setFragmentRootElementName("product");
+
+        //tell the reader how to parse XML and which domain object to be mapped
+        reader.setUnmarshaller(new Jaxb2Marshaller(){
+            {
+                setClassesToBeBound(Product.class);
+            }
+        });
+        return reader;
+    }
+
     @Bean
     public Step step1() {
         return steps.get("step1")
@@ -130,7 +157,8 @@ public class BatchConfiguration {
     public Step step3() {
         return steps.get("step3")
                 .<String, String>chunk(1)
-                .reader(flatFileItemReader(null))
+//                .reader(flatFileItemReader(null))
+                .reader(xmlitemReader(null))
                 .writer(consoleItemWriter)
                 .build();
     }

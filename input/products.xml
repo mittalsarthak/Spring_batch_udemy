@@ -1,0 +1,16 @@
+<products>
+    <product>
+        <productId>1</productId>
+        <productName>iphone 12</productName>
+        <productdesc>Apple cell phone</productdesc>
+        <price>2321.00</price>
+        <unit>23</unit>
+    </product>
+    <product>
+        <productId>2</productId>
+        <productName>xps 13</productName>
+        <productdesc>Dell Laptop</productdesc>
+        <price>11221.00</price>
+        <unit>42</unit>
+    </product>
+</products>
