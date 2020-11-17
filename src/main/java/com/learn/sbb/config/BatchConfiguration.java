@@ -6,6 +6,8 @@ import com.learn.sbb.listener.Step2Listener;
 import com.learn.sbb.model.Product;
 import com.learn.sbb.processor.InMemoryItemProcessor;
 import com.learn.sbb.reader.InMemoryReader;
+import com.learn.sbb.reader.ProductServiceAdapter;
+import com.learn.sbb.service.ProductService;
 import com.learn.sbb.writer.ConsoleItemWriter;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
@@ -17,6 +19,7 @@ import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.tasklet.Tasklet;
+import org.springframework.batch.item.adapter.ItemReaderAdapter;
 import org.springframework.batch.item.database.JdbcCursorItemReader;
 import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper;
@@ -72,6 +75,12 @@ public class BatchConfiguration {
 
     @Autowired
     private DataSource dataSource;
+
+    @Autowired
+    private ProductService productService;
+
+    @Autowired
+    private ProductServiceAdapter productServiceAdapter;
 
     private Tasklet helloWorldTasklet() {
         return new Tasklet() {
@@ -207,6 +216,15 @@ public class BatchConfiguration {
     }
 
     @Bean
+    public ItemReaderAdapter serviceItemReader(){
+        ItemReaderAdapter reader = new ItemReaderAdapter();
+        reader.setTargetObject(productServiceAdapter);
+        reader.setTargetMethod("nextProduct");
+
+        return reader;
+    }
+
+    @Bean
     public Step step1() {
         return steps.get("step1")
                 .listener(hwStepExecutionListener)
@@ -233,7 +251,8 @@ public class BatchConfiguration {
 //                .reader(xmlitemReader(null))
 //                .reader(fixFlatFileItemReader(null))
 //                .reader(jdbcCursorItemReader())
-                .reader(jsonItemReader(null))
+//                .reader(jsonItemReader(null))
+                .reader(serviceItemReader())
                 .writer(consoleItemWriter)
                 .build();
     }
